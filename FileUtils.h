@@ -15,13 +15,21 @@ using namespace std;
 
 struct FileAttrib
 {
-    
+    string Name;
     string ModifiedDate;
     string Permissions;
     string size;
     string owner;
     string group;
+
+
 };
+
+
+
+void enterDir(int n);
+
+void printList(int start,int end);
 
 struct FileAttrib GetFileAttributes(const char * filename);
 

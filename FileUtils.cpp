@@ -8,18 +8,32 @@
 #include <string>
 #include <cstdio>
 #include <iostream>
+#include <vector>
+#include <algorithm>
+#include <cstring>
 #include "FileUtils.h"
 using namespace std;
 
+bool operator < (const FileAttrib& a,const FileAttrib& b){
+    return a.Name < b.Name;
+}
+
+vector<FileAttrib> vFiles;
+
 
 struct FileAttrib GetFileAttributes(const char * filename){
+
  struct stat sb;
+ struct FileAttrib f;
+ char ch[2000];
+ strcat(ch,filename);
+ strcat(ch,":stat");
  if (stat(filename, &sb) == -1) {
-        perror("stat");
-        //return sb;
+        perror(ch);
+        //return f;
     }
 
-    struct FileAttrib f;
+    
     f.ModifiedDate = ctime(&sb.st_mtime);
     
     f.ModifiedDate.erase(f.ModifiedDate.find_last_not_of(" \n\r\t")+1);
@@ -49,31 +63,50 @@ struct FileAttrib GetFileAttributes(const char * filename){
     f.Permissions+= sb.st_mode & S_IROTH ? "r" : "-";
     f.Permissions+=sb.st_mode & S_IWOTH ? "w" : "-";
     f.Permissions+=sb.st_mode & S_IXOTH ? "x" : "-";
-
+    f.Name = filename;
     return f;
 
 }
 
+
+
 void listdir(const char *name)
 {
+    
+    vFiles.clear();
     DIR *dir;
     struct dirent *entry;
 
     if (!(dir = opendir(name)))
         return;
-    /*if (entry->d_type == DT_DIR) {
-            char path[1024];
-            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
-                continue;
-            snprintf(path, sizeof(path), "%s/%s", name, entry->d_name);
-            printf("%*s[%s]\n", indent, "", entry->d_name);
-            listdir(path, indent + 2);
-        } else */
+    
     while ((entry = readdir(dir)) != NULL) {      
 	
 	    struct FileAttrib fb=GetFileAttributes(entry->d_name);
-        cout << fb.Permissions<<"  "<<fb.owner<<"  "<<fb.group<<"  "<<fb.size<<"  "<<fb.ModifiedDate<<"  " <<entry->d_name<<"\n";
+        vFiles.push_back(fb);
         
     }
     closedir(dir);
+    sort(vFiles.begin(),vFiles.end());
+
+    printList(0,vFiles.size());
+}
+
+void printList(int start,int end){
+    if(end > vFiles.size())
+        end=vFiles.size();
+    cout << "\033[2J\033[1;1H";
+    for(unsigned int i=start;i<end;i++){
+        FileAttrib fb = vFiles[i];
+        cout << " "<<fb.Permissions<<"  "<<fb.owner<<"  "<<fb.group<<"  "<<fb.size<<"  "<<fb.ModifiedDate<<"  " <<fb.Name<<"\n";
+    }
+    cout << "\033[1;1H";
+}
+
+void enterDir(int n){
+    if(n<vFiles.size()){
+        char * name = new char[vFiles[n].Name.length()+1];
+        strcpy(name,vFiles[n].Name.c_str());
+        listdir(name);
+    }
 }
