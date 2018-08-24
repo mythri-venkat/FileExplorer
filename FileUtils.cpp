@@ -1,16 +1,4 @@
-#include <unistd.h>
-#include <sys/types.h>
-#include <dirent.h>
-#include <grp.h>
-#include <sys/stat.h>
-#include <time.h>
-#include <pwd.h>
-#include <string>
-#include <cstdio>
-#include <iostream>
-#include <vector>
-#include <algorithm>
-#include <cstring>
+
 #include "FileUtils.h"
 using namespace std;
 
@@ -19,18 +7,25 @@ bool operator < (const FileAttrib& a,const FileAttrib& b){
 }
 
 vector<FileAttrib> vFiles;
+string currentpath;
+int nFiles;
+stack<string> backStack;
+stack<string> fwdStack;
 
-
-struct FileAttrib GetFileAttributes(const char * filename){
+FileAttrib GetFileAttributes(const char * filename){
 
  struct stat sb;
  struct FileAttrib f;
- char ch[2000];
- strcat(ch,filename);
- strcat(ch,":stat");
- if (stat(filename, &sb) == -1) {
-        perror(ch);
-        //return f;
+ string str="";
+ int temp1 =  strcmp(filename,".") ;
+ int temp2 = strcmp(filename,"..");
+ str=filename;
+ if(temp1 != 0 && temp2 != 0 ){
+     str = currentpath + "/"+filename;
+ }
+ if (stat(str.c_str(), &sb) == -1) {
+        cout <<endl<<(filename)<<endl;
+        return f;
     }
 
     
@@ -64,6 +59,7 @@ struct FileAttrib GetFileAttributes(const char * filename){
     f.Permissions+=sb.st_mode & S_IWOTH ? "w" : "-";
     f.Permissions+=sb.st_mode & S_IXOTH ? "x" : "-";
     f.Name = filename;
+    f.path = str;
     return f;
 
 }
@@ -88,8 +84,8 @@ void listdir(const char *name)
     }
     closedir(dir);
     sort(vFiles.begin(),vFiles.end());
-
-    printList(0,vFiles.size());
+    nFiles = vFiles.size();
+    
 }
 
 void printList(int start,int end){
@@ -104,9 +100,14 @@ void printList(int start,int end){
 }
 
 void enterDir(int n){
+
     if(n<vFiles.size()){
-        char * name = new char[vFiles[n].Name.length()+1];
-        strcpy(name,vFiles[n].Name.c_str());
-        listdir(name);
+       
+        if(vFiles[n].Name != "."){
+        currentpath=currentpath+"/"+ vFiles[n].Name;
+        backStack.push(currentpath);
+        listdir(currentpath.c_str());
+        
+        }
     }
 }
