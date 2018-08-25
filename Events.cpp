@@ -75,10 +75,14 @@ void gotoDir(string str,bool stackpush){
 }
 
 void goUp(){
-    gotoDir("..",true);
-    string strback = backStack.top();
-    backStack.pop();
-    fwdStack.push(strback);
+    int idx =backStack.top().find_last_of("/",backStack.top().length()-2);
+
+    string strup = "..";
+    if(idx != 0 && idx != backStack.top().length()-1){
+       strup=backStack.top().substr(0,idx);
+    }  
+    
+    gotoDir(strup,true);
 }
 
 void goBack(){

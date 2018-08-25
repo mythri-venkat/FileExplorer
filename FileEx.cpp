@@ -28,7 +28,7 @@ void setNormalMode (){
   tcgetattr (STDIN_FILENO, &default_attr);
   atexit (resetMode);
   tcgetattr (STDIN_FILENO, &normal_attr);
-  normal_attr.c_lflag &= ~(ICANON|ECHO);
+  normal_attr.c_lflag &= ~(ICANON|ECHO|ECHOE);
   tcsetattr (STDIN_FILENO, TCSAFLUSH, &normal_attr);
 }
 
@@ -80,6 +80,13 @@ int main() {
         gotoDir(homepath,true);
         break;
       }
+      case ((char)127):
+      case '\b':{
+        goUp();
+        break;
+
+      }
+      
     }
   }
   cout << "\033[2J\033[1;1H";
