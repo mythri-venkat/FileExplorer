@@ -19,6 +19,17 @@
 #include <stack>
 using namespace std;
 
+enum FileType{
+    Dir,
+    RegularFile,
+    Link,
+    Block,
+    CharacterDev,
+    Pipe,
+    SocketFile,
+    None
+};
+
 struct FileAttrib
 {
     string Name;
@@ -28,6 +39,7 @@ struct FileAttrib
     string owner;
     string group;
     string path;
+    FileType type;
 };
 
 extern stack<string> backStack;
@@ -37,7 +49,7 @@ extern string currentpath;
 
 extern int nFiles;
 
-void enterDir(int n);
+FileType enterDir(int n);
 
 void printList(int start,int end);
 

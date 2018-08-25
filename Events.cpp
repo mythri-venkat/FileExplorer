@@ -15,13 +15,16 @@ void moveCursor(int x,int y){
 }
 
 void enterKey(){
-  enterDir(linenum);
+  FileType type = enterDir(linenum);
+  if(type == Dir){
+    startidx =0;
     endidx = nFiles;
     if(endidx > rows){
       endidx=rows;
     }
     printList(startidx,endidx);
-	linenum=0;
+	  linenum=0;
+  }
 }
 
 void upArrowKey(){
@@ -48,9 +51,9 @@ void downArrowKey(){
     if(linenum < nFiles-1){
        startidx++;
        endidx++;
-       linenum++;
+       linenum=endidx-1;
        printList(startidx,endidx);
-       moveCursor(endidx-1,1);
+       moveCursor(rows,1);
     }
 
   }
@@ -63,12 +66,12 @@ void gotoDir(string str,bool stackpush){
     
   }
   listdir(str.c_str());
-    endidx = nFiles;
-    if(endidx > rows){
-      endidx=rows;
-    }
-    printList(startidx,endidx);
-    
+  endidx = nFiles;
+  if(endidx > rows){
+    endidx=rows;
+  }
+  printList(startidx,endidx);
+  
 }
 
 void goUp(){

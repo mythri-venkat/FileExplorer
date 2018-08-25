@@ -49,7 +49,37 @@ FileAttrib GetFileAttributes(const char * filename){
     f.owner = pass->pw_name;
     struct group * grp = getgrgid(sb.st_gid);
     f.group = grp->gr_name;
-    f.Permissions = sb.st_mode & S_IRUSR ? "r" : "-";
+    f.type = None;
+    if(S_ISDIR(sb.st_mode)){
+        f.type=Dir;
+        f.Permissions="d";
+    }
+    else if(S_ISREG(sb.st_mode)){
+        f.type = RegularFile;
+        f.Permissions ="-";
+    }
+    else if(S_ISBLK(sb.st_mode)){
+        f.type = Block;
+        f.Permissions = "b";
+    }
+    else if(S_ISCHR(sb.st_mode)){
+        f.type = CharacterDev;
+        f.Permissions = "c";
+    }
+    else if(S_ISLNK(sb.st_mode)){
+        f.type = Link;
+        f.Permissions="l";
+    }
+    else if(S_ISSOCK(sb.st_mode)){
+        f.type = SocketFile;
+        f.Permissions="s";
+    }
+    else{
+        f.type = Pipe;
+        f.Permissions="p";
+    }
+    
+    f.Permissions += sb.st_mode & S_IRUSR ? "r" : "-";
     f.Permissions+=sb.st_mode & S_IWUSR ? "w" : "-";
     f.Permissions+=sb.st_mode & S_IXUSR ? "x" : "-";
     f.Permissions+=sb.st_mode & S_IRGRP ? "r" : "-";
@@ -99,15 +129,20 @@ void printList(int start,int end){
     cout << "\033[1;1H";
 }
 
-void enterDir(int n){
-
+FileType enterDir(int n){
+    FileType t = None;
     if(n<vFiles.size()){
-       
+        t = vFiles[n].type;
         if(vFiles[n].Name != "."){
-        currentpath=currentpath+"/"+ vFiles[n].Name;
-        backStack.push(currentpath);
-        listdir(currentpath.c_str());
-        
+            
+            if(t == Dir){
+                
+                currentpath=currentpath+"/"+ vFiles[n].Name;
+                backStack.push(currentpath);
+                listdir(currentpath.c_str()); 
+            }       
         }
+        return t;
     }
+    return t;
 }
