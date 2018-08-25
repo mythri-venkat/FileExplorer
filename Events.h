@@ -13,4 +13,5 @@ void gotoDir(string str,bool stackpush);
 void goBack();
 void goForward();
 void goUp();
+void writeStat(string str);
 #endif

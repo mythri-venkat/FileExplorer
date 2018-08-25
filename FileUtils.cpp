@@ -129,8 +129,40 @@ void printList(int start,int end){
     cout << "\033[1;1H";
 }
 
-FileType enterDir(int n){
+string openFile(string filename){
+    string strfile = currentpath+"/"+filename;
+    pid_t pid = fork();
+    int status;
+    if(pid==0){
+        cout << "strfile:"<<strfile;
+            execl("/usr/bin/xdg-open","xdg-open",strfile.c_str(),(char *)0);
+            exit(0);
+    }
+    else{
+        if (waitpid(pid, &status, 0) > 0) {
+			
+	        int res = WIFEXITED(status);
+            if (res && !WEXITSTATUS(status)) {
+                    return "";
+            }
+		    else if (WIFEXITED(status) && WEXITSTATUS(status)) {
+			    return "Could not open file.";
+
+			}
+			else
+			    return ("program didn't terminate normally.");		 
+		    } 
+		else {
+		        return "Could not open file";
+		}
+    }
+    return "";
+}
+
+pair<FileType,string> enterDir(int n){
+    pair<FileType,string> pout;
     FileType t = None;
+    string msg="";
     if(n<vFiles.size()){
         t = vFiles[n].type;
         if(vFiles[n].Name != "."){
@@ -140,9 +172,13 @@ FileType enterDir(int n){
                 currentpath=currentpath+"/"+ vFiles[n].Name;
                 backStack.push(currentpath);
                 listdir(currentpath.c_str()); 
+            }
+            else if(t == RegularFile){
+                msg = openFile(vFiles[n].Name);
             }       
         }
-        return t;
+        
     }
-    return t;
+    return make_pair(t,msg);
 }
+

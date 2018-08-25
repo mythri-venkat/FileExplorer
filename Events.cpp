@@ -5,25 +5,41 @@ using namespace std;
 int startidx=0,endidx=0;
 int linenum=0;
 int rows;
-
-void writeStat(string str){
-  
-}
+string currentStat;
+const string strNormal = "-- NORMAL MODE --";
+const string strCommand = "-- COMMAND MODE --";
 
 void moveCursor(int x,int y){
   cout << "\033["<<x<<";"<<y<<"H";
 }
 
+void writeStat(string str){
+  int cursorpos = linenum - startidx +1;
+  moveCursor(rows+1,1);
+  cout << "\033[2K";
+  cout << str;
+  moveCursor(cursorpos,1);
+  currentStat=str;
+}
+
+
+
+
 void enterKey(){
-  FileType type = enterDir(linenum);
-  if(type == Dir){
+  pair<FileType,string> pout = enterDir(linenum);
+  if(pout.first == Dir){
     startidx =0;
     endidx = nFiles;
     if(endidx > rows){
       endidx=rows;
     }
     printList(startidx,endidx);
-	  linenum=0;
+    linenum=0;
+    writeStat(strNormal);
+	  
+  }
+  else if(pout.first == RegularFile && pout.second != ""){
+    writeStat(pout.second);
   }
 }
 
@@ -38,6 +54,7 @@ void upArrowKey(){
       startidx = linenum;
       endidx--;
       printList(startidx,endidx);
+      writeStat(strNormal);
     }
   }
 }
@@ -54,6 +71,7 @@ void downArrowKey(){
        linenum=endidx-1;
        printList(startidx,endidx);
        moveCursor(rows,1);
+       writeStat(strNormal);
     }
 
   }
@@ -71,16 +89,11 @@ void gotoDir(string str,bool stackpush){
     endidx=rows;
   }
   printList(startidx,endidx);
-  
+  writeStat(strNormal);
 }
 
 void goUp(){
-    int idx =backStack.top().find_last_of("/",backStack.top().length()-2);
-
-    string strup = "..";
-    if(idx != 0 && idx != backStack.top().length()-1){
-       strup=backStack.top().substr(0,idx);
-    }  
+    string strup = currentpath + "/..";
     
     gotoDir(strup,true);
 }

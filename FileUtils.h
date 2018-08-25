@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <iostream>
 #include <stack>
+#include <sys/wait.h>
 using namespace std;
 
 enum FileType{
@@ -49,7 +50,7 @@ extern string currentpath;
 
 extern int nFiles;
 
-FileType enterDir(int n);
+pair<FileType,string> enterDir(int n);
 
 void printList(int start,int end);
 
