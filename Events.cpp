@@ -39,6 +39,7 @@ void enterKey(){
 	  
   }
   else if(pout.first == RegularFile && pout.second != ""){
+    printList(startidx,endidx);
     writeStat(pout.second);
   }
 }

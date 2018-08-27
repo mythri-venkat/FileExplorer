@@ -14,4 +14,5 @@ void goBack();
 void goForward();
 void goUp();
 void writeStat(string str);
+void moveCursor(int x,int y);
 #endif

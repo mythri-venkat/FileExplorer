@@ -182,3 +182,15 @@ pair<FileType,string> enterDir(int n){
     return make_pair(t,msg);
 }
 
+/*void addToList(string str){
+    if(str.substr(0,1)=="/"){
+        int idx = str.find(currentpath);
+        if(idx != string::npos && str.find("/",currentpath.length()+1)==string::npos){
+            
+        }
+    }
+    else if(str.find("/")==string :: npos || str.find("/")==str.length()-1){
+        listdir(currentpath.c_str());
+        printList(0,vFiles.size());    
+    }
+}*/

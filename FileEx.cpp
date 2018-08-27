@@ -4,6 +4,8 @@
 #include <cstring>
 #include <sys/ioctl.h>
 #include"Events.h"
+#include "CommandMode.h"
+
 using namespace std;
 
 
@@ -66,7 +68,6 @@ int main() {
             	break;
         	case 'D':
               goBack();
-            	
             	break;
     	  }
         break;
@@ -84,7 +85,28 @@ int main() {
       case '\b':{
         goUp();
         break;
-
+      }
+      case ':':{
+        resetMode();
+        writeStat(":");
+        moveCursor(rows+1,2);
+        
+        char chcmdmode=':';
+        while(1){
+          
+          if(chcmdmode == ':'){
+            //resetMode();
+            string command;
+            getline(cin,command);
+            parseCommand(command);
+            //setNormalMode();
+          }
+          else if(chcmdmode == '\e'){
+            moveCursor(1,1);
+            break;
+          }
+          //chcmdmode = getchar();          
+        }       
       }
       
     }
