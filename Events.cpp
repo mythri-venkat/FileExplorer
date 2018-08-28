@@ -9,6 +9,9 @@ string currentStat;
 const string strNormal = "-- NORMAL MODE --";
 const string strCommand = "-- COMMAND MODE --";
 
+bool cmdMode;
+int curPositionCmd;
+
 void moveCursor(int x,int y){
   cout << "\033["<<x<<";"<<y<<"H";
 }
@@ -22,7 +25,32 @@ void writeStat(string str){
   currentStat=str;
 }
 
+void writeStatCmd(string str){
+  
+  moveCursor(rows+1,1);
+  cout << "\033[2K";
+  cout << ":"+str;
+  
+  currentStat=str;
+}
 
+bool getWinSize(){
+  struct winsize s;
+  ioctl(STDOUT_FILENO,TIOCGWINSZ,&s);
+  if(s.ws_row-1 != rows){
+    rows=--s.ws_row;
+    endidx = nFiles;
+    if(endidx > rows){
+      endidx = rows;
+    }
+    printList(0,endidx);
+    moveCursor(1,1);
+    writeStat(strNormal);
+    linenum=0;
+    return true;
+  }
+  return false;
+}
 
 
 void enterKey(){
@@ -45,6 +73,9 @@ void enterKey(){
 }
 
 void upArrowKey(){
+  if(getWinSize()){
+    return;
+  }
   if(linenum>startidx){
    	cout << "\033[1A";
    	linenum--;
@@ -61,6 +92,10 @@ void upArrowKey(){
 }
 
 void downArrowKey(){
+  if(getWinSize()){
+    return;
+  }
+  
   if(linenum < endidx-1){
     cout << "\033[1B";
     linenum++;
@@ -89,6 +124,7 @@ void gotoDir(string str,bool stackpush){
   if(endidx > rows){
     endidx=rows;
   }
+  linenum=0;
   printList(startidx,endidx);
   writeStat(strNormal);
 }

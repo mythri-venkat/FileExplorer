@@ -41,6 +41,7 @@ struct FileAttrib
     string group;
     string path;
     FileType type;
+    mode_t mode;
 };
 
 extern stack<string> backStack;
@@ -54,7 +55,7 @@ pair<FileType,string> enterDir(int n);
 
 void printList(int start,int end);
 
-struct FileAttrib GetFileAttributes(const char * filename);
+struct FileAttrib GetFileAttributes(const char * filename,bool fullpath);
 
 void listdir(const char *name);
 

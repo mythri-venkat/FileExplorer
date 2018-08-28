@@ -2,7 +2,7 @@
 
 #include <termios.h>
 #include <cstring>
-#include <sys/ioctl.h>
+
 #include"Events.h"
 #include "CommandMode.h"
 
@@ -41,7 +41,7 @@ int main() {
     struct winsize s;
     ioctl(STDOUT_FILENO,TIOCGWINSZ,&s);
     rows=--s.ws_row;
-    char homepath[PATH_MAX];
+    
     if(getcwd(homepath,sizeof(homepath))==NULL){
     	perror("getcwd error");
     	return 1;
@@ -87,26 +87,22 @@ int main() {
         break;
       }
       case ':':{
-        resetMode();
-        writeStat(":");
-        moveCursor(rows+1,2);
-        
-        char chcmdmode=':';
+        cmdMode=true;
+        curPositionCmd=2;
+        writeStatCmd("");
         while(1){
-          
-          if(chcmdmode == ':'){
-            //resetMode();
-            string command;
-            getline(cin,command);
-            parseCommand(command);
-            //setNormalMode();
-          }
-          else if(chcmdmode == '\e'){
+          char ch1 = getchar();
+          if(makeCommand(ch1)){
+            curPositionCmd=1;
+            writeStat("--NORMAL MODE--");
             moveCursor(1,1);
+            command = "";
             break;
           }
-          //chcmdmode = getchar();          
-        }       
+              
+        }
+        cmdMode=false;
+        break;       
       }
       
     }

@@ -12,7 +12,7 @@ int nFiles;
 stack<string> backStack;
 stack<string> fwdStack;
 
-FileAttrib GetFileAttributes(const char * filename){
+FileAttrib GetFileAttributes(const char * filename,bool fullpath){
 
  struct stat sb;
  struct FileAttrib f;
@@ -20,7 +20,7 @@ FileAttrib GetFileAttributes(const char * filename){
  int temp1 =  strcmp(filename,".") ;
  int temp2 = strcmp(filename,"..");
  str=filename;
- if(temp1 != 0 && temp2 != 0 ){
+ if(temp1 != 0 && temp2 != 0 && !fullpath){
      str = currentpath + "/"+filename;
  }
  if (stat(str.c_str(), &sb) == -1) {
@@ -90,6 +90,7 @@ FileAttrib GetFileAttributes(const char * filename){
     f.Permissions+=sb.st_mode & S_IXOTH ? "x" : "-";
     f.Name = filename;
     f.path = str;
+    f.mode =sb.st_mode;
     return f;
 
 }
@@ -108,7 +109,7 @@ void listdir(const char *name)
     
     while ((entry = readdir(dir)) != NULL) {      
 	
-	    struct FileAttrib fb=GetFileAttributes(entry->d_name);
+	    struct FileAttrib fb=GetFileAttributes(entry->d_name,false);
         vFiles.push_back(fb);
         
     }
