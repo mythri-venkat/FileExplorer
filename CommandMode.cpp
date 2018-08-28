@@ -31,6 +31,10 @@ bool makeCommand(char charr){
         curPositionCmd--;
         writeStatCmd(command);
         }
+        else{
+            writeStatCmd("");
+            curPositionCmd = 2;
+        }
     }
     else if(ch == '\b' ){
         cout << '\b';
@@ -40,7 +44,7 @@ bool makeCommand(char charr){
     else if(ch == '\n'){
         parseCommand(command);
         command="";
-        curPositionCmd=1;
+        curPositionCmd=2;
     }
     else{
         curPositionCmd++;
@@ -93,6 +97,22 @@ string createDir(string dirname,string path){
    
 }
 
+string createFile(string filename,string path){
+
+    string str;
+    if(path.find("~") != string :: npos){
+        str = getpwuid(getuid())->pw_dir;
+        str+="/"+(path!="~"?path.substr(1,path.length()-1):"")+"/"+filename;
+    }
+    else{
+        str = path+"/"+filename;
+    }
+    if(open(str.c_str(), O_WRONLY | O_CREAT | O_TRUNC,S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH) == -1){
+        return "Cannot create file";
+    }
+    return "";
+}
+
 string copyFile(string src,string dest){
     int isrc = open(src.c_str(),O_RDONLY,0);
     if(isrc == -1){
@@ -136,8 +156,45 @@ string copyFiles(vector<string> args){
 }
 
 
-string remove(string path){
-    string str=homepath+path;
+string deletFile(string path){
+    string str=homepath;
+    str+="/"+path;
+    int stat = remove(str.c_str()); 
+    if(stat == -1){
+        return "Cannot delete file:"+str;
+    }       
+    
+    return "";
+}
+
+string rename(string oldfile,string newfile){
+    if(rename(oldfile.c_str(),newfile.c_str()) == -1){
+        return "Cannot rename.";
+    }
+    return "";
+}
+
+string moveFiles(vector<string> args){
+    string dest = args[args.size()-1];
+    string str;
+    if(dest.find("~") != string :: npos){
+        str = getpwuid(getuid())->pw_dir;
+        str+="/"+(dest!="~"?dest.substr(1,dest.length()-1):"")+"/";
+    }
+    else{
+        str = dest+"/";
+    }
+    string err="";
+    for(int i=1;i<args.size()-1;i++){
+        err=rename(args[i],str+args[i]);
+        if(err != ""){
+            return err;
+        }
+    }
+   
+    
+    return err;
+
 }
 
 void parseCommand(string command){
@@ -150,7 +207,7 @@ void parseCommand(string command){
     if(cmd == "q"){
         exit(0);
     }
-    else if(cmd == "cp"){
+    else if(cmd == "copy"){
         if(args.size() >=3){
             strstat = copyFiles(args);
         }        
@@ -163,9 +220,42 @@ void parseCommand(string command){
         }
 
     }
+    else if(cmd == "create_file"){
+        if(args.size() == 3)
+        {
+            strstat = createFile(args[1],args[2]);
+            
+        }
+
+    }
+    else if(cmd == "rename"){
+        if(args.size() == 3)
+        {
+            strstat = rename(args[1],args[2]);
+            
+        }
+
+    }
+    else if(cmd == "move"){
+        if(args.size() >=3){
+            strstat = moveFiles(args);
+        }        
+    }
+    else if(cmd == "delete_file"){
+        if(args.size() == 2)
+        {
+            strstat = deletFile(args[1]);
+            
+        }
+
+    }
     //printList(startidx,endidx);
     listdir(currentpath.c_str());
-    printList(0,nFiles);
+    startidx=0;
+    endidx = nFiles;
+    if(endidx > rows)
+        endidx = rows;
+    printList(0,endidx);
     writeStatCmd(strstat);
     
     

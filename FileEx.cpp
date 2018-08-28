@@ -96,6 +96,7 @@ int main() {
             curPositionCmd=1;
             writeStat("--NORMAL MODE--");
             moveCursor(1,1);
+            linenum=startidx;
             command = "";
             break;
           }

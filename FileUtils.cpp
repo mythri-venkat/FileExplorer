@@ -114,6 +114,7 @@ void listdir(const char *name)
         
     }
     closedir(dir);
+    chdir(name);
     sort(vFiles.begin(),vFiles.end());
     nFiles = vFiles.size();
     
