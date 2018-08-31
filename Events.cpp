@@ -73,9 +73,9 @@ void enterKey(){
 }
 
 void upArrowKey(){
-  if(getWinSize()){
+  /*if(getWinSize()){
     return;
-  }
+  }*/
   if(linenum>startidx){
    	cout << "\033[1A";
    	linenum--;
@@ -92,9 +92,9 @@ void upArrowKey(){
 }
 
 void downArrowKey(){
-  if(getWinSize()){
+  /*if(getWinSize()){
     return;
-  }
+  }*/
   
   if(linenum < endidx-1){
     cout << "\033[1B";
@@ -121,6 +121,7 @@ void gotoDir(string str,bool stackpush){
   }
   listdir(str.c_str());
   endidx = nFiles;
+  startidx=0;
   if(endidx > rows){
     endidx=rows;
   }
@@ -130,14 +131,15 @@ void gotoDir(string str,bool stackpush){
 }
 
 void goUp(){
-    string strup = currentpath + "/..";
+    currentpath.erase(currentpath.find_last_of('/'),string::npos);  
     
-    gotoDir(strup,true);
+    gotoDir(currentpath,true);
 }
 
 void goBack(){
+  string strback;
   if(!backStack.empty()){
-    string strback = backStack.top();
+    strback = backStack.top();
     backStack.pop();
     if(backStack.empty()){
       backStack.push(strback);
@@ -148,6 +150,7 @@ void goBack(){
     }
 
   }
+  //writeStat(backStack.top().length()+"");
 }
 
 void goForward(){

@@ -42,6 +42,7 @@ struct FileAttrib
     string path;
     FileType type;
     mode_t mode;
+    bool fullpath;
 };
 
 extern stack<string> backStack;
@@ -50,6 +51,10 @@ extern stack<string> fwdStack;
 extern string currentpath;
 
 extern int nFiles;
+
+extern char homepath[PATH_MAX];
+
+extern vector<FileAttrib> vFiles;
 
 pair<FileType,string> enterDir(int n);
 

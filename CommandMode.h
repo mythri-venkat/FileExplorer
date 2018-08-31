@@ -3,8 +3,8 @@
 #include "Events.h"
 
 extern string command;
-extern char homepath[PATH_MAX];
+
 bool makeCommand(char c);
-void parseCommand(string command);
+bool parseCommand(string command);
 
 #endif

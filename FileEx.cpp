@@ -48,7 +48,7 @@ int main() {
     }
     //strcat(homepath,"\\TestDir");
     gotoDir(homepath,true);
-    writeStat("--NORMAL MODE--");
+    writeStat("-- NORMAL MODE --");
     setNormalMode();
     char ch;
     

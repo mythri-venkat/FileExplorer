@@ -1,11 +1,15 @@
 #include "CommandMode.h"
 #include <fcntl.h>
+#include <ftw.h>
 
 mode_t defModeDir = S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH;
-
-
+string destCopy="";
+string srcCopy="";
 string command="";
-char homepath[PATH_MAX];
+string strsnapshot="";
+stack<string> stSnapshot;
+vector<FileAttrib> searchResults;
+
 bool makeCommand(char charr){
     char ch=charr;
     //char ch2=charr[2];
@@ -42,9 +46,10 @@ bool makeCommand(char charr){
         writeStatCmd(command);
     }
     else if(ch == '\n'){
-        parseCommand(command);
+        bool switchtonormal= parseCommand(command);
         command="";
         curPositionCmd=2;
+        return switchtonormal;
     }
     else{
         curPositionCmd++;
@@ -63,10 +68,15 @@ vector<string> getArgs(string command){
     vector<string> args;
     
     while(idxlast != string :: npos){
+        
         string cmd = command.substr(idxfirst,idxlast-idxfirst);
         args.push_back(cmd);
         idxfirst=idxlast+1;
         idxlast = command.find(" ",idxfirst);
+        while(idxlast != string::npos && command[idxlast-1]=='\\'){
+            command.erase(idxlast-1,1);
+            idxlast = command.find(" ",idxlast);
+        }        
     }
     idxlast = idxlast== string::npos ? command.length()-1:idxlast;
     args.push_back(command.substr(idxfirst,idxlast-idxfirst+1));
@@ -92,7 +102,7 @@ string createDir(string dirname,string path){
         return "";  
     }
     else{
-        return "Cannot create dir";
+        return strerror(errno);
     }
    
 }
@@ -108,20 +118,21 @@ string createFile(string filename,string path){
         str = path+"/"+filename;
     }
     if(open(str.c_str(), O_WRONLY | O_CREAT | O_TRUNC,S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH) == -1){
-        return "Cannot create file";
+        return strerror(errno);
     }
     return "";
 }
 
-string copyFile(string src,string dest){
+string copyFile(string src,string dest,mode_t fmode){
+    
     int isrc = open(src.c_str(),O_RDONLY,0);
     if(isrc == -1){
-        return "Cannot open source.";
+        return strerror(errno);
     }
-    mode_t fmode = GetFileAttributes(src.c_str(),true).mode;
+    
     int idest = open(dest.c_str(),O_WRONLY|O_CREAT,fmode);
     if(idest == -1){
-        return "Cannot open dest.";
+        return strerror(errno);
     }
     char buffer[BUFSIZ];
     size_t size;
@@ -133,11 +144,27 @@ string copyFile(string src,string dest){
     return "";
 }
 
+int copyCallback(const char *path, const struct stat *sb, int typeflag, struct FTW *ptftw){
+    string dest =destCopy+ path;
+    //cout << "path:"<<path<<"    dest:"<<destCopy<<"   ";
+    if(typeflag == FTW_D){
+        return mkdir(dest.c_str(),sb->st_mode);
+    }
+    else{
+        if(copyFile(path,dest.c_str(),sb->st_mode)==""){
+            return 0;
+        }        
+    }
+    return -1;
+}
+
+
+
 string copyFiles(vector<string> args){
     string dest = args[args.size()-1];
     string str;
     if(dest.find("~") != string :: npos){
-        str = getpwuid(getuid())->pw_dir;
+        str = homepath;
         str+="/"+(dest!="~"?dest.substr(1,dest.length()-1):"")+"/";
     }
     else{
@@ -145,9 +172,20 @@ string copyFiles(vector<string> args){
     }
     string err="";
     for(int i=1;i<args.size()-1;i++){
-        err=copyFile(args[i],str+args[i]);
-        if(err != ""){
-            return err;
+        FileAttrib fb = GetFileAttributes(args[i].c_str(),true);
+        if(fb.type == Dir){
+            //chdir(str.c_str());
+            destCopy = str;
+            int eno = nftw((args[i]).c_str(),copyCallback,128,FTW_PHYS);
+            if(eno == -1){
+                return strerror(errno);
+            }
+        }
+        else{
+            err=copyFile(args[i],str+args[i],fb.mode);
+            if(err != ""){
+                return err;
+            }
         }
     }
    
@@ -156,29 +194,56 @@ string copyFiles(vector<string> args){
 }
 
 
-string deletFile(string path){
+int delete_callback(const char *path, const struct stat *sb, int typeflag, struct FTW *ptftw){
+    if(typeflag == FTW_DP){
+        return rmdir(path);
+    }
+    else if(typeflag == FTW_F || typeflag == FTW_SL || typeflag == FTW_SLN){
+        return unlink(path);
+    }
+    return -1;
+}
+
+string deleteDir(string path){
     string str=homepath;
     str+="/"+path;
-    int stat = remove(str.c_str()); 
+    int stat=0;
+    
+    stat = nftw(str.c_str(), delete_callback, 128, FTW_DEPTH | FTW_PHYS);
     if(stat == -1){
-        return "Cannot delete file:"+str;
-    }       
+        return strerror(errno);
+    }   
+    
+    return "";
+}
+
+string deleteFile(string path){
+    string str=homepath;
+    str+="/"+path;
+    int stat = remove(str.c_str());
+    if(stat == -1){
+        return strerror(errno);
+    }   
     
     return "";
 }
 
 string rename(string oldfile,string newfile){
+    if(oldfile[0] == '/'){
+        oldfile=homepath+oldfile;
+    }
     if(rename(oldfile.c_str(),newfile.c_str()) == -1){
-        return "Cannot rename.";
+        return strerror(errno);
     }
     return "";
 }
+
 
 string moveFiles(vector<string> args){
     string dest = args[args.size()-1];
     string str;
     if(dest.find("~") != string :: npos){
-        str = getpwuid(getuid())->pw_dir;
+        str = homepath;
         str+="/"+(dest!="~"?dest.substr(1,dest.length()-1):"")+"/";
     }
     else{
@@ -186,9 +251,18 @@ string moveFiles(vector<string> args){
     }
     string err="";
     for(int i=1;i<args.size()-1;i++){
-        err=rename(args[i],str+args[i]);
-        if(err != ""){
-            return err;
+        FileAttrib fb = GetFileAttributes(args[i].c_str(),true);
+        if(fb.type == Dir){
+            err=rename("./"+args[i],str+args[i]);
+            if(err != ""){
+                return err;
+            }
+        }
+        else{
+            err=rename(args[i],str+args[i]);
+            if(err != ""){
+                return err;
+            }
         }
     }
    
@@ -197,12 +271,141 @@ string moveFiles(vector<string> args){
 
 }
 
-void parseCommand(string command){
+void gotoCommandMode(string path){
+    string str="";
+    if(path[0] == '/'){
+        str = homepath+path;
+    }
+    else{
+        str=currentpath+"/"+path;
+    }
+    gotoDir(str,true);
+}
+
+string listSnapshot(string name)
+{
+    DIR *dir;
+    struct dirent *entry;
+    string strfilename;
+    
+    if (!(dir = opendir(name.c_str())))
+        return strerror(errno);
+
+    strsnapshot+="\n\n"+name+":\n";
+
+    while ((entry = readdir(dir)) != NULL) {
+        if (entry->d_type == DT_DIR) {
+            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+                continue;
+            string str = name +"/"+entry->d_name;
+            strfilename = entry->d_name;
+            strsnapshot+=strfilename+"\t";
+            stSnapshot.push(str);
+            
+        } 
+        else {
+            strfilename = entry->d_name;
+            strsnapshot+=strfilename+"\t";
+        }
+    }
+    closedir(dir);
+    string err="";
+    while(!stSnapshot.empty()){
+        string nxtpath = stSnapshot.top();
+        stSnapshot.pop();
+        err= listSnapshot(nxtpath);
+    }
+    return err;
+}
+
+string snapshot(string folder,string dumpfile){
+    int fd;
+    string err;
+    strsnapshot="";
+    if((err=listSnapshot(folder)) != ""){
+        return err;
+    }
+    if(strsnapshot.size()==0){
+        return "Could not create snapshot";
+    }
+    if((fd=open(dumpfile.c_str(),O_WRONLY | O_CREAT | O_TRUNC,S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) == -1){
+        return strerror(errno);
+    }
+    const char * buf = strsnapshot.c_str();
+    if(write(fd,buf,strlen(buf)) == -1){
+        close(fd);
+        return strerror(errno);
+    }
+    close(fd);
+    
+    return "";
+}
+
+string search(string path,string value)
+{
+    DIR *dir;
+    struct dirent *entry;
+    string strfilename;
+    string err="";
+    if (!(dir = opendir(path.c_str())))
+        return strerror(errno);
+
+
+    while ((entry = readdir(dir)) != NULL) {
+        //cout << "entry:"<<entry->d_name<<" ";
+        if (entry->d_type == DT_DIR) {
+            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+                continue;
+            string str = path +(path[path.length()-1]=='/'?"":"/")+entry->d_name;
+            //strfilename = entry->d_name;
+            if(strcmp(entry->d_name,value.c_str())==0){
+                FileAttrib fa=GetFileAttributes(str.c_str(),true);
+                fa.path = str;
+                fa.fullpath = true;
+                fa.Name = entry->d_name;
+                searchResults.push_back(fa);
+            }
+            err= search(str,value);
+        } 
+        else {
+            strfilename = entry->d_name;
+            string str = path +(path[path.length()-1]=='/'?"":"/")+entry->d_name;
+            if(strcmp(entry->d_name,value.c_str())==0){
+                FileAttrib fa=GetFileAttributes(str.c_str(),true);
+                fa.Name = entry->d_name;
+                fa.path = str;
+                fa.fullpath=true;
+                searchResults.push_back(fa);
+            }
+        }
+    }
+    closedir(dir);
+    
+    return err;
+}
+
+string searchName(string name){
+    searchResults.clear();
+    string err;
+    if((err=search(currentpath,name)) == ""){
+        if(searchResults.size()==0){
+            err="No results found.";
+        }
+        else{
+            vFiles.clear();
+            vFiles = searchResults;
+        }
+    }
+    searchResults.clear();
+    return err;
+}
+
+bool parseCommand(string command){
     vector<string> args = getArgs(command);
     
     string strstat ="";
     if(args.size()==0)
-        return;
+        return false;
     string cmd = args[0];
     if(cmd == "q"){
         exit(0);
@@ -244,10 +447,40 @@ void parseCommand(string command){
     else if(cmd == "delete_file"){
         if(args.size() == 2)
         {
-            strstat = deletFile(args[1]);
+            strstat = deleteFile(args[1]);
             
         }
 
+    }
+    else if(cmd == "delete_dir"){
+        if(args.size() == 2)
+        {
+            strstat = deleteDir(args[1]);
+            
+        }
+
+    }
+    else if(cmd == "goto"){
+        if(args.size()==2){
+            gotoCommandMode(args[1]);
+        }
+    }
+    else if(cmd == "snapshot"){
+        if(args.size()==3){
+            strstat=snapshot(args[1],args[2]);
+        }
+    }
+    else if(cmd == "search"){
+        if(args.size()==2){
+            if((strstat=searchName(args[1]))==""){
+                startidx=0;
+                endidx = nFiles;
+                if(endidx > rows)
+                    endidx = rows;
+                printList(0,endidx);
+                return true;
+            }
+        }
     }
     //printList(startidx,endidx);
     listdir(currentpath.c_str());
@@ -258,6 +491,7 @@ void parseCommand(string command){
     printList(0,endidx);
     writeStatCmd(strstat);
     
+    return false;
     
 }
 

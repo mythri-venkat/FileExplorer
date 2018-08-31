@@ -12,6 +12,8 @@ int nFiles;
 stack<string> backStack;
 stack<string> fwdStack;
 
+char homepath[PATH_MAX];
+
 FileAttrib GetFileAttributes(const char * filename,bool fullpath){
 
  struct stat sb;
@@ -91,6 +93,7 @@ FileAttrib GetFileAttributes(const char * filename,bool fullpath){
     f.Name = filename;
     f.path = str;
     f.mode =sb.st_mode;
+    f.fullpath = false;
     return f;
 
 }
@@ -104,8 +107,12 @@ void listdir(const char *name)
     DIR *dir;
     struct dirent *entry;
 
-    if (!(dir = opendir(name)))
-        return;
+    if (!(dir = opendir(name))){
+        if(!(dir = opendir(homepath))){
+            return;
+        }
+    }
+        
     
     while ((entry = readdir(dir)) != NULL) {      
 	
@@ -117,7 +124,6 @@ void listdir(const char *name)
     chdir(name);
     sort(vFiles.begin(),vFiles.end());
     nFiles = vFiles.size();
-    
 }
 
 void printList(int start,int end){
@@ -126,17 +132,20 @@ void printList(int start,int end){
     cout << "\033[2J\033[1;1H";
     for(unsigned int i=start;i<end;i++){
         FileAttrib fb = vFiles[i];
-        cout << " "<<fb.Permissions<<"  "<<fb.owner<<"  "<<fb.group<<"  "<<fb.size<<"  "<<fb.ModifiedDate<<"  " <<fb.Name<<"\n";
+        //cout << " "<<fb.Permissions<<"  "<<fb.owner<<"  "<<fb.group<<"  "<<fb.size<<"  "<<fb.ModifiedDate<<"  " << (fb.Name)<<"\n";
+        cout << " "<<fb.Permissions<<"  "<<fb.owner<<"  "<<fb.group<<"  "<<fb.size<<"  "<<fb.ModifiedDate<<"  " << (fb.fullpath?fb.path:fb.Name)<<"\n";
     }
     cout << "\033[1;1H";
 }
 
-string openFile(string filename){
-    string strfile = currentpath+"/"+filename;
+string openFile(string filename,bool fullpath){
+    string strfile=filename;
+    if(!fullpath)
+    strfile = currentpath+"/"+filename;
     pid_t pid = fork();
     int status;
     if(pid==0){
-        cout << "strfile:"<<strfile;
+        //cout << "strfile:"<<strfile;
             execl("/usr/bin/xdg-open","xdg-open",strfile.c_str(),(char *)0);
             exit(0);
     }
@@ -170,19 +179,32 @@ pair<FileType,string> enterDir(int n){
         if(vFiles[n].Name != "."){
             
             if(t == Dir){
-                
-                currentpath=currentpath+"/"+ vFiles[n].Name;
+                if(vFiles[n].Name == ".."){
+                    currentpath.erase(currentpath.find_last_of('/'),string::npos);
+                }
+                else{
+                    if(vFiles[n].fullpath){
+                        currentpath = vFiles[n].path;
+                    }
+                    else{
+                        currentpath=currentpath+"/"+ vFiles[n].Name;
+                    }
+                }               
+                //currentpath=currentpath+"/"+ vFiles[n].Name;
+                //msg ="path:"+ currentpath;
                 backStack.push(currentpath);
                 listdir(currentpath.c_str()); 
+                //msg = currentpath;
             }
             else if(t == RegularFile){
-                msg = openFile(vFiles[n].Name);
+                msg = openFile(vFiles[n].fullpath?vFiles[n].path: vFiles[n].Name,vFiles[n].fullpath);
             }       
         }
         
     }
     return make_pair(t,msg);
 }
+
 
 /*void addToList(string str){
     if(str.substr(0,1)=="/"){
