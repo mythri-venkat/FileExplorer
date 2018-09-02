@@ -20,7 +20,8 @@
 #include <sys/wait.h>
 using namespace std;
 
-enum FileType{
+enum FileType
+{
     Dir,
     RegularFile,
     Link,
@@ -56,12 +57,12 @@ extern char homepath[PATH_MAX];
 
 extern vector<FileAttrib> vFiles;
 
-pair<FileType,string> enterDir(int n);
+pair<FileType, string> enterDir(int n);
 
-void printList(int start,int end);
+void printList(int start, int end);
 
-struct FileAttrib GetFileAttributes(const char * filename,bool fullpath);
+struct FileAttrib GetFileAttributes(const char *filename, bool fullpath);
 
 void listdir(const char *name);
 
-#endif  
+#endif
